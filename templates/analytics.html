@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .stats-card {
+      transition: transform 0.2s;
+    }
+    .stats-card:hover {
+      transform: translateY(-5px);
+    }
+    .chart-container {
+      position: relative;
+      height: 400px;
+      margin: 20px 0;
+    }
+    .analytics-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 0;
+      margin-bottom: 30px;
+    }
+    .metric-card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <!-- Header -->
+  <div class="analytics-header">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="mb-0">
+            <i class="fas fa-chart-line"></i> Analytics Dashboard
+          </h1>
+          <p class="mb-0 mt-2">Comprehensive insights into student permission patterns</p>
+        </div>
+        <div class="d-flex gap-2">
+          <span class="text-light me-3">
+            <i class="fas fa-user"></i> Welcome, {{ session.username }}
+          </span>
+          <a href="/dashboard" class="btn btn-outline-light">
+            <i class="fas fa-users"></i> Student List
+          </a>
+          <a href="/logout" class="btn btn-outline-light">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Key Metrics -->
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="card metric-card bg-primary text-white">
+          <div class="card-body text-center">
+            <i class="fas fa-users fa-2x mb-2"></i>
+            <h3 id="totalStudents">{{ analytics.total_permissions }}</h3>
+            <p class="mb-0">Total Requests</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card metric-card bg-success text-white">
+          <div class="card-body text-center">
+            <i class="fas fa-calendar-day fa-2x mb-2"></i>
+            <h3 id="todayRequests">{{ analytics.todays_requests }}</h3>
+            <p class="mb-0">Today's Requests</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card metric-card bg-info text-white">
+          <div class="card-body text-center">
+            <i class="fas fa-calendar-week fa-2x mb-2"></i>
+            <h3 id="weekRequests">{{ analytics.this_week_requests }}</h3>
+            <p class="mb-0">This Week</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card metric-card bg-warning text-white">
+          <div class="card-body text-center">
+            <i class="fas fa-calendar-month fa-2x mb-2"></i>
+            <h3 id="monthRequests">{{ analytics.this_month_requests }}</h3>
+            <p class="mb-0">This Month</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <div class="card metric-card">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-chart-pie"></i> Branch Distribution
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="branchChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card metric-card">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-chart-line"></i> Daily Request Trend
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Analytics -->
+    <div class="row mb-4">
+      <div class="col-md-8">
+        <div class="card metric-card">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-chart-bar"></i> Monthly Analysis (2024)
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="monthlyChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card metric-card">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-clock"></i> Request Times
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="timeChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let branchChart, trendChart, timeChart, monthlyChart;
+    
+    // Load analytics data when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      loadAnalyticsData();
+      // Auto-refresh every 30 seconds
+      setInterval(loadAnalyticsData, 30000);
+    });
+
+    function loadAnalyticsData() {
+      fetch('/api/analytics')
+        .then(response => response.json())
+        .then(data => {
+          updateMetrics(data);
+          updateCharts(data);
+        })
+        .catch(error => {
+          console.error('Error loading analytics:', error);
+        });
+    }
+
+    function updateMetrics(data) {
+      document.getElementById('totalStudents').textContent = data.total_permissions;
+      document.getElementById('todayRequests').textContent = data.todays_requests;
+      document.getElementById('weekRequests').textContent = data.this_week_requests;
+      document.getElementById('monthRequests').textContent = data.this_month_requests;
+    }
+
+    function updateCharts(data) {
+      // Branch Distribution Chart
+      const branchLabels = Object.keys(data.branch_stats);
+      const branchCounts = Object.values(data.branch_stats);
+      
+      if (branchChart) {
+        branchChart.destroy();
+      }
+      
+      const branchCtx = document.getElementById('branchChart').getContext('2d');
+      branchChart = new Chart(branchCtx, {
+        type: 'doughnut',
+        data: {
+          labels: branchLabels,
+          datasets: [{
+            data: branchCounts,
+            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+
+      // Daily Trend Chart
+      const dailyLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const dailyData = dailyLabels.map(day => data.daily_trend[day] || 0);
+      
+      if (trendChart) {
+        trendChart.destroy();
+      }
+      
+      const trendCtx = document.getElementById('trendChart').getContext('2d');
+      trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+          labels: dailyLabels,
+          datasets: [{
+            label: 'Requests',
+            data: dailyData,
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+
+      // Monthly Analysis Chart
+      const monthlyLabels = ['January', 'February', 'March', 'April', 'May', 'June', 
+                            'July', 'August', 'September', 'October', 'November', 'December'];
+      const monthlyData = monthlyLabels.map(month => data.monthly_analysis[month] || 0);
+      
+      if (monthlyChart) {
+        monthlyChart.destroy();
+      }
+      
+      const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+      monthlyChart = new Chart(monthlyCtx, {
+        type: 'bar',
+        data: {
+          labels: monthlyLabels,
+          datasets: [{
+            label: 'Requests',
+            data: monthlyData,
+            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+            borderColor: '#667eea',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          },
+          plugins: {
+            legend: {
+              display: false
+            }
+          }
+        }
+      });
+
+      // Time Distribution Chart
+      const timeLabels = Object.keys(data.time_distribution);
+      const timeData = Object.values(data.time_distribution);
+      
+      if (timeChart) {
+        timeChart.destroy();
+      }
+      
+      const timeCtx = document.getElementById('timeChart').getContext('2d');
+      timeChart = new Chart(timeCtx, {
+        type: 'bar',
+        data: {
+          labels: timeLabels,
+          datasets: [{
+            label: 'Requests',
+            data: timeData,
+            backgroundColor: '#764ba2'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

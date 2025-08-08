@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    .stats-card {
+      transition: transform 0.2s;
+    }
+    .stats-card:hover {
+      transform: translateY(-5px);
+    }
+    .table th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .export-btn {
+      background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+      border: none;
+    }
+    .export-btn:hover {
+      background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+    }
+    .dashboard-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 0;
+      margin-bottom: 30px;
+    }
+    .metric-card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="mb-0">
+            <i class="fas fa-chart-line"></i> Student Permission Dashboard
+          </h1>
+          <p class="mb-0 mt-2">Manage and monitor student permission requests</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <span class="text-light me-3">
+            <i class="fas fa-user"></i> Welcome, {{ session.username }}
+          </span>
+          <a href="/analytics" class="btn btn-outline-light">
+            <i class="fas fa-chart-bar"></i> Analytics
+          </a>
+          <a href="/logout" class="btn btn-outline-light">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Last Updated Indicator -->
+    <div class="row mb-2">
+      <div class="col-12">
+        <small class="text-muted">
+          <i class="fas fa-sync-alt"></i> Last updated: <span id="lastUpdated">Just now</span>
+          <span class="ms-2">(Auto-refreshes every 30 seconds)</span>
+        </small>
+      </div>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <div class="card stats-card bg-primary text-white">
+          <div class="card-body text-center">
+            <i class="fas fa-users fa-2x mb-2"></i>
+            <h4>{{ total_requests }}</h4>
+            <p class="mb-0">Total Requests</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card stats-card bg-success text-white">
+          <div class="card-body text-center">
+            <i class="fas fa-calendar-day fa-2x mb-2"></i>
+            <h4>{{ todays_requests }}</h4>
+            <p class="mb-0">Today's Requests</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card stats-card bg-info text-white">
+          <div class="card-body text-center">
+            <i class="fas fa-calendar-week fa-2x mb-2"></i>
+            <h4>{{ this_month_requests }}</h4>
+            <p class="mb-0">This Month</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <form method="GET" action="/dashboard" class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Search by Roll No</label>
+            <input type="text" name="rollno" class="form-control" placeholder="Enter roll number" value="{{ rollno_filter }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Filter by Date</label>
+            <input type="date" name="date" class="form-control" value="{{ date_filter }}">
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2">
+              <i class="fas fa-search"></i> Search
+            </button>
+            {% if rollno_filter or date_filter %}
+            <a href="/dashboard" class="btn btn-outline-secondary">
+              <i class="fas fa-times"></i> Clear
+            </a>
+            {% endif %}
+            <button type="button" class="btn btn-success" onclick="exportData()">
+              <i class="fas fa-download"></i> Export
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-table"></i> Permission Requests
+        </h5>
+      </div>
+      <div class="card-body">
+        {% if permissions %}
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Roll No</th>
+                <th>Branch</th>
+                <th>Email</th>
+                <th>Reason</th>
+                <th>Date and Time</th>
+                <th>History</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for permission in permissions %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td><span class="badge bg-secondary">{{ permission.rollno }}</span></td>
+                <td><span class="badge bg-warning">{{ permission.branch }}</span></td>
+                <td>{{ permission.email }}</td>
+                <td>
+                  <span class="text-muted" title="{{ permission.reason }}">
+                    {{ permission.reason[:50] }}{% if permission.reason|length > 50 %}...{% endif %}
+                  </span>
+                </td>
+                <td>{{ permission.submitted_at }}</td>
+                <td>
+                  <button class="btn btn-sm btn-outline-info" onclick="showStudentHistory('{{ permission.rollno }}')">
+                    <i class="fas fa-history"></i> View History
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+          <h5 class="text-muted">No permission requests found</h5>
+          <p class="text-muted">Submit a new request to see data here</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="historyModalLabel">
+            <i class="fas fa-history"></i> Student History
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light" id="historyModalBody">
+          <!-- History content will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Auto-refresh dashboard data every 30 seconds
+    setInterval(function() {
+      updateDashboardData();
+    }, 30000);
+
+    function updateDashboardData() {
+      // Show updating indicator
+      const cards = document.querySelectorAll('.stats-card');
+      cards.forEach(card => {
+        card.style.opacity = '0.7';
+        card.style.transition = 'opacity 0.3s';
+      });
+      
+      // Get current filter values
+      const rollnoFilter = document.querySelector('input[name="rollno"]').value;
+      const dateFilter = document.querySelector('input[name="date"]').value;
+      
+      // Build query string
+      let queryString = '/dashboard';
+      const params = [];
+      if (rollnoFilter) params.push(`rollno=${encodeURIComponent(rollnoFilter)}`);
+      if (dateFilter) params.push(`date=${encodeURIComponent(dateFilter)}`);
+      if (params.length > 0) queryString += '?' + params.join('&');
+      
+      fetch(queryString)
+        .then(response => response.text())
+        .then(html => {
+          // Parse the HTML to extract updated data
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          
+          // Update statistics cards
+          const totalRequests = doc.querySelector('.bg-primary h4');
+          const todayRequests = doc.querySelector('.bg-success h4');
+          const monthRequests = doc.querySelector('.bg-info h4');
+          
+          if (totalRequests) document.querySelector('.bg-primary h4').textContent = totalRequests.textContent;
+          if (todayRequests) document.querySelector('.bg-success h4').textContent = todayRequests.textContent;
+          if (monthRequests) document.querySelector('.bg-info h4').textContent = monthRequests.textContent;
+          
+          // Update table data
+          const newTableBody = doc.querySelector('table tbody');
+          const currentTableBody = document.querySelector('table tbody');
+          if (newTableBody && currentTableBody) {
+            currentTableBody.innerHTML = newTableBody.innerHTML;
+          }
+          
+          // Restore opacity
+          cards.forEach(card => {
+            card.style.opacity = '1';
+          });
+          
+          // Update last updated time
+          const now = new Date();
+          document.getElementById('lastUpdated').textContent = now.toLocaleTimeString();
+        })
+        .catch(error => {
+          console.log('Dashboard update failed:', error);
+          // Restore opacity on error
+          cards.forEach(card => {
+            card.style.opacity = '1';
+          });
+        });
+    }
+
+    function showStudentHistory(rollno) {
+      fetch(`/api/student-history/${rollno}`)
+        .then(response => response.json())
+        .then(data => {
+          const modalBody = document.getElementById('historyModalBody');
+          if (data.length > 0) {
+            // Calculate this month's outings
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth();
+            const currentYear = currentDate.getFullYear();
+            
+            const thisMonthOutings = data.filter(record => {
+              let dt = record.submitted_at;
+              if (dt && typeof dt === 'string') {
+                try {
+                  // Parse DD/MM/YYYY HH:MM:SS format
+                  const parts = dt.split(' ');
+                  if (parts.length >= 2) {
+                    const datePart = parts[0]; // DD/MM/YYYY
+                    const dateParts = datePart.split('/');
+                    if (dateParts.length === 3) {
+                      const day = parseInt(dateParts[0]);
+                      const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed in JS
+                      const year = parseInt(dateParts[2]);
+                      dt = new Date(year, month, day);
+                    }
+                  }
+                } catch (e) {
+                  console.warn('Date parsing failed:', e);
+                }
+              }
+              if (dt && dt instanceof Date && !isNaN(dt)) {
+                return dt.getMonth() === currentMonth && dt.getFullYear() === currentYear;
+              }
+              return false;
+            }).length;
+            
+            // Determine background color based on this month's outings
+            const bgColorClass = thisMonthOutings >= 5 ? 'bg-danger text-white' : 'bg-light';
+            
+            let html = `
+              <div class="mb-3">
+                <h6>History for Roll No: ${rollno}</h6>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="card ${bgColorClass}">
+                      <div class="card-body text-center">
+                        <h4>${data.length}</h4>
+                        <p class="mb-0">Total Outings</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="card ${bgColorClass}">
+                      <div class="card-body text-center">
+                        <h4>${thisMonthOutings}</h4>
+                        <p class="mb-0">This Month Outings</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Roll No</th>
+                      <th>Branch</th>
+                      <th>Email</th>
+                      <th>Reason</th>
+                      <th>Date & Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>`;
+            
+            data.forEach(record => {
+              let dt = record.submitted_at;
+              let formatted = record.submitted_at || '';
+              
+              if (dt && typeof dt === 'string') {
+                try {
+                  // Parse DD/MM/YYYY HH:MM:SS format for display
+                  const parts = dt.split(' ');
+                  if (parts.length >= 2) {
+                    const datePart = parts[0]; // DD/MM/YYYY
+                    const timePart = parts[1]; // HH:MM:SS
+                    formatted = `${datePart} ${timePart}`;
+                  }
+                } catch (e) {
+                  console.warn('Date formatting failed:', e);
+                  formatted = dt;
+                }
+              }
+              
+              html += `<tr><td>${record.rollno || ''}</td><td>${record.branch || ''}</td><td>${record.email || ''}</td><td>${record.reason || ''}</td><td>${formatted}</td></tr>`;
+            });
+            
+            html += '</tbody></table></div>';
+            modalBody.innerHTML = html;
+          } else {
+            modalBody.innerHTML = `<p class="text-muted">No previous history found for Roll No: ${rollno}</p>`;
+          }
+          new bootstrap.Modal(document.getElementById('historyModal')).show();
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          document.getElementById('historyModalBody').innerHTML = '<p class="text-danger">Error loading history</p>';
+          new bootstrap.Modal(document.getElementById('historyModal')).show();
+        });
+    }
+
+    function exportData() {
+        // Show loading state
+        const exportBtn = document.querySelector('button[onclick="exportData()"]');
+        const originalText = exportBtn.innerHTML;
+        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+        exportBtn.disabled = true;
+        
+        fetch('/export')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data || data.length === 0) {
+                    alert('No data to export');
+                    return;
+                }
+                
+                // Create CSV content
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "Roll Number,Email,Branch,Reason,Date and Time\n";
+                
+                data.forEach(row => {
+                    // Escape CSV values properly
+                    const escapeCSV = (value) => {
+                        if (value === null || value === undefined) return '""';
+                        const stringValue = String(value);
+                        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                            return '"' + stringValue.replace(/"/g, '""') + '"';
+                        }
+                        return stringValue;
+                    };
+                    
+                    csvContent += `${escapeCSV(row['Roll Number'])},${escapeCSV(row['Email'])},${escapeCSV(row['Branch'])},${escapeCSV(row['Reason'])},${escapeCSV(row['Submitted At'])}\n`;
+                });
+                
+                // Create download link
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `permissions_data_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            })
+            .catch(error => {
+                console.error('Export error:', error);
+                alert('Error exporting data. Please check your connection and try again.');
+            })
+            .finally(() => {
+                // Reset button state
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+            });
+    }
+  </script>
+</body>
+</html>
