@@ -6,7 +6,7 @@ import os
 from config import MONGO_URI
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')  # Use environment variable for production
 
 # MongoDB connection
 client = MongoClient(MONGO_URI)
@@ -356,4 +356,5 @@ def get_analytics_api():
     return jsonify(analytics_data)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
