@@ -35,6 +35,18 @@
       border-radius: 15px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
+    /* Fixed-height scroll container for permissions table */
+    .table-fixed-container {
+      max-height: 400px;
+      overflow-y: auto;
+      padding-bottom: 12px; /* bottom padding for breathing room */
+    }
+    /* Keep table header visible while scrolling */
+    .table-fixed-container thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
   </style>
 </head>
 <body class="bg-light">
@@ -63,7 +75,7 @@
     </div>
   </div>
 
-  <div class="container">
+  <div class="container pb-4">
     <!-- Last Updated Indicator -->
     <div class="row mb-2">
       <div class="col-12">
@@ -143,8 +155,8 @@
       </div>
       <div class="card-body">
         {% if permissions %}
-        <div class="table-responsive">
-          <table class="table table-bordered table-hover">
+        <div class="table-responsive table-fixed-container">
+          <table class="table table-bordered table-hover mb-0">
             <thead>
               <tr>
                 <th>#</th>
@@ -386,61 +398,25 @@
     }
 
     function exportData() {
-        // Show loading state
-        const exportBtn = document.querySelector('button[onclick="exportData()"]');
-        const originalText = exportBtn.innerHTML;
-        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
-        exportBtn.disabled = true;
-        
-        fetch('/export')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (!data || data.length === 0) {
-                    alert('No data to export');
-                    return;
-                }
-                
-                // Create CSV content
-                let csvContent = "data:text/csv;charset=utf-8,";
-                csvContent += "Roll Number,Email,Branch,Reason,Date and Time\n";
-                
-                data.forEach(row => {
-                    // Escape CSV values properly
-                    const escapeCSV = (value) => {
-                        if (value === null || value === undefined) return '""';
-                        const stringValue = String(value);
-                        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-                            return '"' + stringValue.replace(/"/g, '""') + '"';
-                        }
-                        return stringValue;
-                    };
-                    
-                    csvContent += `${escapeCSV(row['Roll Number'])},${escapeCSV(row['Email'])},${escapeCSV(row['Branch'])},${escapeCSV(row['Reason'])},${escapeCSV(row['Submitted At'])}\n`;
-                });
-                
-                // Create download link
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", `permissions_data_${new Date().toISOString().split('T')[0]}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            })
-            .catch(error => {
-                console.error('Export error:', error);
-                alert('Error exporting data. Please check your connection and try again.');
-            })
-            .finally(() => {
-                // Reset button state
-                exportBtn.innerHTML = originalText;
-                exportBtn.disabled = false;
-            });
+      const exportBtn = document.querySelector('button[onclick="exportData()"]');
+      const originalText = exportBtn.innerHTML;
+      exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+      exportBtn.disabled = true;
+
+      const rollno = document.querySelector('input[name="rollno"]').value.trim();
+      const date = document.querySelector('input[name="date"]').value.trim();
+      const params = new URLSearchParams();
+      if (rollno) params.set('rollno', rollno);
+      if (date) params.set('date', date);
+      const url = '/export' + (params.toString() ? ('?' + params.toString()) : '');
+
+      // Trigger direct download from server
+      window.location.href = url;
+
+      setTimeout(() => {
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+      }, 1200);
     }
   </script>
 </body>
