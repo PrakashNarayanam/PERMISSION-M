@@ -137,7 +137,7 @@
         <div class="card metric-card">
           <div class="card-header">
             <h5 class="mb-0">
-              <i class="fas fa-chart-bar"></i> Monthly Analysis (2024)
+              <i class="fas fa-chart-bar"></i> Monthly Analysis 
             </h5>
           </div>
           <div class="card-body">
@@ -293,9 +293,9 @@
         }
       });
 
-      // Time Distribution Chart
-      const timeLabels = Object.keys(data.time_distribution);
-      const timeData = Object.values(data.time_distribution);
+      // Time Distribution Chart (fixed hourly ranges with AM/PM)
+      const timeLabels = ['9-10 AM','10-11 AM','11 AM-12 PM','12-1 PM','1-2 PM','2-3 PM','3-4 PM'];
+      const timeData = timeLabels.map(label => data.time_distribution[label] || 0);
       
       if (timeChart) {
         timeChart.destroy();
