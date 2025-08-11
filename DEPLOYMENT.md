@@ -112,3 +112,4 @@ SECRET_KEY=your-secure-secret-key-here
 - Configure in the "Settings" tab
 
 Your application will be available at: `https://your-app-name.onrender.com`
+
