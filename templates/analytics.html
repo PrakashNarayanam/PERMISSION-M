@@ -8,6 +8,15 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    main {
+      flex: 1;
+      padding-bottom: 60px;
+    }
     .stats-card {
       transition: transform 0.2s;
     }
@@ -30,9 +39,23 @@
       border-radius: 15px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      color: #333;
+      text-align: center;
+      padding: 8px 0;
+      font-size: 0.75rem;
+      z-index: 1000;
+      border-top: 1px solid #e0e0e0;
+    }
   </style>
 </head>
 <body class="bg-light">
+  <main>
   <!-- Header -->
   <div class="analytics-header">
     <div class="container">
@@ -162,7 +185,12 @@
         </div>
       </div>
     </div>
-  </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    © <span id="year"></span> Ranbidge Solutions Private Limited. All Rights Reserved.
+  </footer>
 
   <script>
     let branchChart, trendChart, timeChart, monthlyChart;
@@ -324,5 +352,7 @@
       });
     }
   </script>
-</body>
-</html>
+  <script>
+    // Set current year in footer
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
