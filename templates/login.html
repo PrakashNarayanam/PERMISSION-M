@@ -18,6 +18,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
         }
 
         .login-container {
@@ -119,9 +128,25 @@
             font-size: 0.8rem;
             color: #666;
         }
+
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            color: #333;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 0.75rem;
+            z-index: 1000;
+            width: 100%;
+            border-top: 1px solid #e0e0e0;
+        }
     </style>
 </head>
 <body>
+    <main>
     <div class="login-container">
         <div class="login-header">
             <h1>Admin Login</h1>
@@ -154,6 +179,16 @@
 
         
     </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        © <span id="year"></span> Ranbidge Solutions Private Limited. All Rights Reserved.
+    </footer>
+    <script>
+        // Set current year in footer
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
 </body>
 </html>
 
