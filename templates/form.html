@@ -11,6 +11,11 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+        main {
+            flex: 1;
         }
         .form-container {
             background: rgba(255, 255, 255, 0.95);
@@ -21,6 +26,19 @@
         }
         .pb-5-custom {
             padding-bottom: 5rem !important;
+        }
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            color: #333;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 0.75rem;
+            z-index: 1000;
+            border-top: 1px solid #e0e0e0;
         }
         .form-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -64,6 +82,7 @@
     </style>
 </head>
 <body>
+    <main>
     <div class="container mt-5 pb-5-custom">
         <div class="row justify-content-center">
             <div class="col-md-8">
@@ -123,6 +142,12 @@
             </div>
         </div>
     </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        © <span id="year"></span> Ranbidge Solutions Private Limited. All Rights Reserved.
+    </footer>
 
     <!-- Success Modal -->
     <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
@@ -212,6 +237,10 @@
                 }
             });
         });
+    </script>
+    <script>
+        // Set current year in footer
+        document.getElementById('year').textContent = new Date().getFullYear();
     </script>
 </body>
 </html>
